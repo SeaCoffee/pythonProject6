@@ -2,6 +2,7 @@ from rest_framework_simplejwt.tokens import BlacklistMixin, Token
 from typing import Type
 from rest_framework.generics import get_object_or_404
 from django.contrib.auth import get_user_model
+from django.utils.timezone import now
 
 
 from core.enums.action_token_enum import ActionTokenEnum
@@ -26,6 +27,8 @@ class RecoveryToken(ActionToken):
 class JWTService:
     @staticmethod
     def create_token(user, token_class: ActionTokenClassType):
+        user.last_login = now()
+        user.save(update_fields=['last_login'])
         return token_class.for_user(user)
 
     @staticmethod
@@ -38,4 +41,10 @@ class JWTService:
 
         token_res.blacklist()
         user_id = token_res.payload.get('user_id')
-        return get_object_or_404(UserModel, pk=user_id)
+        user = get_object_or_404(UserModel, pk=user_id)
+
+        user.last_login = now()
+        user.save(update_fields=['last_login'])
+
+        return user
+
