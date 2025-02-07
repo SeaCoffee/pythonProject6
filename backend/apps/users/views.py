@@ -3,7 +3,6 @@ from rest_framework.generics import CreateAPIView, GenericAPIView, UpdateAPIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.generics import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.exceptions import NotFound
 
@@ -11,6 +10,8 @@ from rest_framework.exceptions import NotFound
 
 from apps.users.serializers import UserSerializer, ProfileSerializer
 from apps.users.filters import UserFilter
+from apps.auth.serializers import PasswordSerializer
+from core.services.jwt_service import RecoveryToken
 
 UserModel = get_user_model()
 
@@ -76,12 +77,24 @@ class UpdateSelfView(UpdateAPIView):
         if not user:
             raise NotFound("User not found")
         return user
+
     def perform_update(self, serializer):
         user = self.get_object()
+        password_changed = False
+        validated_data = serializer.validated_data
+
 
         if "password" in self.request.data:
-            user.set_password(self.request.data["password"])
-            user.save(update_fields=["password"])
+            password_serializer = PasswordSerializer(data={"password": self.request.data["password"]})
+            password_serializer.is_valid(raise_exception=True)
+
+            new_password = password_serializer.validated_data["password"]
+            user.set_password(new_password)
+            user.save()
+
+            password_changed = True
+
+            validated_data.pop("password", None)
 
         serializer.save()
 
@@ -91,7 +104,20 @@ class UpdateSelfView(UpdateAPIView):
             profile_serializer.is_valid(raise_exception=True)
             profile_serializer.save()
 
-        serializer.save()
+        if password_changed:
+            try:
+                token = self.request.auth
+                if token:
+                    token_instance = RecoveryToken(str(token))
+                    token_instance.blacklist()
+            except Exception as e:
+                print(f"Token invalidation error: {e}")
+
+            return Response(
+                {"detail": "Password changed successfully. Please log in again."},
+                status=200
+            )
+
 
 
 class DeleteSelfView(DestroyAPIView):
@@ -127,6 +153,6 @@ class UserRetrieveView(RetrieveAPIView):
 class UserFilteredListView(ListAPIView):
     queryset = UserModel.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated,)  # Или IsAdminUser
+    permission_classes = (IsAuthenticated,)
     filter_backends = [DjangoFilterBackend]
     filterset_class = UserFilter

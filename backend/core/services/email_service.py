@@ -24,7 +24,7 @@ class EmailService:
     @classmethod
     def register(cls, user):
         token = JWTService.create_token(user, ActivateToken)
-        url = f'http://localhost:8888/api/auth/activate/{token}'
+        url = f'http://localhost:8888/api/auth/activate/{token}/'
         cls.__send_email.delay(
             to=user.email,
             template_name='register.html',
@@ -35,7 +35,7 @@ class EmailService:
     @classmethod
     def recovery(cls, user):
         token = JWTService.create_token(user, RecoveryToken)
-        url = f'http://localhost:8888/api/auth/recovery/{token}'
+        url = f'http://localhost:8888/api/auth/recovery/{token}/'
         cls.__send_email(
             to=user.email,
             template_name='recovery.html',

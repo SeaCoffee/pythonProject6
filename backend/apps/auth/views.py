@@ -11,6 +11,7 @@ from apps.users.serializers import UserSerializer
 from core.services.jwt_service import JWTService, ActivateToken, RecoveryToken, ActionToken, JWTException
 from apps.auth.serializers import EmailSerializer, PasswordSerializer
 from core.services.email_service import EmailService
+from core.services.jwt_service import RecoveryToken
 
 UserModel = get_user_model()
 
@@ -51,6 +52,7 @@ class RecoverRequestView(GenericAPIView):
 
 
 
+
 class RecoveryPasswordView(GenericAPIView):
     permission_classes = (AllowAny,)
 
@@ -58,13 +60,22 @@ class RecoveryPasswordView(GenericAPIView):
         data = self.request.data
         serializer = PasswordSerializer(data=data)
         serializer.is_valid(raise_exception=True)
+
         token = kwargs['token']
         user = JWTService.verify_token(token, RecoveryToken)
-        user.set_password(serializer.data['password'])
-        user.save()
-        serializer = UserSerializer(user)
-        return Response(serializer.data, status.HTTP_200_OK)
 
+        user.set_password(serializer.validated_data['password'])
+        user.is_active = True
+        user.save()
+
+
+        try:
+            token_instance = RecoveryToken(token)
+            token_instance.blacklist()
+        except Exception as e:
+            print(f"Token invalidation error: {e}")
+
+        return Response({'detail': 'Password successfully reset'}, status.HTTP_200_OK)
 
 class LogoutView(GenericAPIView):
     permission_classes = (IsAuthenticated,)

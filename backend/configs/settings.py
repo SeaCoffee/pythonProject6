@@ -48,8 +48,8 @@ INSTALLED_APPS = [
     'core',
     'apps.auth',
     'apps.users',
-    'apps.pizza',
-    'apps.pizza_shop',
+    'apps.posts',
+
 ]
 
 MIDDLEWARE = [

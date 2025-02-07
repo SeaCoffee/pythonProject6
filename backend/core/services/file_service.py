@@ -1,6 +1,7 @@
 import os
 from uuid import uuid1
 
-def upload_pizza_photo(instance, filename: str) -> str:
+def upload_post_photo(instance, filename: str) -> str:
     ext = filename.split('.')[-1]
-    return os.path.join(instance.pizza_shop.name, f"{uuid1()}.{ext}")
+    return os.path.join(f"posts/{instance.author.id}", f"{uuid1()}.{ext}")
+
