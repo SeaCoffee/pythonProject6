@@ -56,6 +56,13 @@ class RecoverRequestView(GenericAPIView):
 class RecoveryPasswordView(GenericAPIView):
     permission_classes = (AllowAny,)
 
+    def get(self, request, *args, **kwargs):
+        token = kwargs['token']
+        user = JWTService.verify_token(token, RecoveryToken)
+        if not user:
+            return Response({'detail': 'Invalid or expired token'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Token is valid'}, status=status.HTTP_200_OK)
+
     def post(self, *args, **kwargs):
         data = self.request.data
         serializer = PasswordSerializer(data=data)
@@ -68,14 +75,13 @@ class RecoveryPasswordView(GenericAPIView):
         user.is_active = True
         user.save()
 
-
         try:
             token_instance = RecoveryToken(token)
             token_instance.blacklist()
         except Exception as e:
             print(f"Token invalidation error: {e}")
 
-        return Response({'detail': 'Password successfully reset'}, status.HTTP_200_OK)
+        return Response({'detail': 'Password successfully reset'}, status=status.HTTP_200_OK)
 
 class LogoutView(GenericAPIView):
     permission_classes = (IsAuthenticated,)

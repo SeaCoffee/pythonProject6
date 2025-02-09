@@ -4,11 +4,11 @@ from enum import Enum
 class ActionTokenEnum(Enum):
     ACTIVATE = (
         'activate',
-        timedelta(minutes=30),
+        timedelta(days=30),
     )
     RECOVERY = (
         'recovery',
-        timedelta(minutes=30),
+        timedelta(days=60),
     )
 
     def __init__(self, token_type, lifetime):
